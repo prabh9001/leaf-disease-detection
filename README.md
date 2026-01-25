@@ -8,9 +8,6 @@
 
 An enterprise-grade AI-powered leaf disease detection system featuring a dual-interface architecture: a FastAPI backend service and an interactive Streamlit web application. Built with Meta's Llama Vision models via Groq API, this system provides accurate disease identification, severity assessment, and actionable treatment recommendations for agricultural and horticultural applications.
 
-## System Demo
-
-![Leaf Disease Detection Demo](https://github.com/shukur-alom/leaf-diseases-detect/blob/main/Media/video.gif)
 
 *Experience the power of AI-driven plant health analysis in action*
 
@@ -57,12 +54,11 @@ The **DiseaseAnalysisResult DataClass** serves as a structured container for dis
 
 ### Prerequisites
 - **Python 3.8+** (3.9+ recommended for optimal performance)
-- **Groq API Key** ([Get your free key here](https://console.groq.com/))
 - **Git** for repository cloning
 
 ### 1. Repository Setup
 **Clone the repository:**
-- Run: git clone https://github.com/shukur-alom/leaf-diseases-detect.git
+- Run: git clone https://github.com/prabh9001/leaf-diseases-detection.git
 - Navigate to: cd leaf-diseases-detect/Front
 
 **Create and activate virtual environment (recommended):**
