@@ -1,5 +1,7 @@
 import streamlit as st
 import requests
+import os
+from utils import convert_image_to_base64_and_test
 
 # Set Streamlit theme to light and wide mode
 st.set_page_config(
@@ -229,7 +231,7 @@ if 'current_image' not in st.session_state:
 if 'current_image_type' not in st.session_state:
     st.session_state.current_image_type = None
 
-api_url = "http://localhost:8001"
+# Note: We now process directly using LeafDiseaseDetector for Streamlit Cloud compatibility
 
 # Main Application Logic
 if st.session_state.analysis_result:
@@ -356,15 +358,16 @@ else:
                 with st.spinner("🔬 AI is analyzing..."):
                     try:
                         img_bytes = uploaded_file.getvalue()
-                        files = {"file": (uploaded_file.name, img_bytes, uploaded_file.type)}
-                        response = requests.post(f"{api_url}/disease-detection-file", files=files)
-                        if response.status_code == 200:
-                            st.session_state.analysis_result = response.json()
+                        # Direct call to logic instead of API request
+                        result = convert_image_to_base64_and_test(img_bytes)
+                        
+                        if result:
+                            st.session_state.analysis_result = result
                             st.session_state.current_image = img_bytes
                             st.session_state.current_image_type = uploaded_file.type
                             st.experimental_rerun()
                         else:
-                            st.error(f"API Error: {response.status_code}")
+                            st.error("AI Analysis failed. Please check your API key in Streamlit Secrets.")
                     except Exception as e:
                         st.error(f"Error: {e}")
         else:
