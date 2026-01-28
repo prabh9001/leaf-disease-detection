@@ -81,8 +81,8 @@ Create a .env file in the project root with the following variables:
 
 #### Option A: Streamlit Web Interface (Recommended for Users)
 **Launch the interactive web application:**
-- Command: streamlit run main.py --server.port 8501 --server.address 0.0.0.0
-- Access at: http://localhost:8501
+- Command: streamlit run main.py
+- Access at: http://localhost:8510
 
 #### Option B: FastAPI Backend Service (Recommended for Developers)
 **Launch the API server:**
@@ -92,7 +92,7 @@ Create a .env file in the project root with the following variables:
 
 #### Option C: Both Services (Full Stack)
 **Terminal 1: Launch FastAPI** - uvicorn app:app --reload --port 8000
-**Terminal 2: Launch Streamlit** - streamlit run main.py --server.port 8501
+**Terminal 2: Launch Streamlit** - streamlit run main.py
 
 ## 📡 API Reference
 
@@ -108,7 +108,7 @@ The Streamlit application provides an intuitive web interface for leaf disease d
 - **Responsive design** optimized for desktop and mobile devices
 
 #### Usage Flow:
-1. Access the web interface at http://localhost:8501
+1. Access the web interface at http://localhost:8510
 2. Upload a leaf image (JPG, PNG supported)
 3. Click "🔍 Detect Disease" to analyze
 4. View detailed results with professional formatting

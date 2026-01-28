@@ -1,5 +1,7 @@
 from fastapi import FastAPI, Request, HTTPException, UploadFile, File
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 import logging
 import os
 from utils import convert_image_to_base64_and_test, test_with_base64_data
@@ -9,6 +11,12 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Leaf Disease Detection API", version="1.0.0")
+
+# Mount static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Initialize templates
+templates = Jinja2Templates(directory="templates")
 
 @app.post('/disease-detection-file')
 async def disease_detection_file(file: UploadFile = File(...)):
@@ -38,13 +46,7 @@ async def disease_detection_file(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@app.get("/")
-async def root():
-    """Root endpoint providing API information"""
-    return {
-        "message": "Leaf Disease Detection API",
-        "version": "1.0.0",
-        "endpoints": {
-            "disease_detection_file": "/disease-detection-file (POST, file upload)"
-        }
-    }
+@app.get("/", response_class=HTMLResponse)
+async def root(request: Request):
+    """Serve the landing page"""
+    return templates.TemplateResponse("index.html", {"request": request})

@@ -13,6 +13,7 @@ uvicorn>=0.21.1
 requests>=2.31.0
 
 python-multipart
+jinja2
 
 # Frontend dependencies
 streamlit

@@ -7,6 +7,7 @@ textColor = "#262730"
 
 [server]
 runOnSave = true
+port = 8510
 
 [browser]
 gatherUsageStats = false
