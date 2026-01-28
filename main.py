@@ -208,15 +208,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-st.markdown("""
-    <div style='text-align: center; margin-top: 2rem; margin-bottom: 3rem;'>
-        <div style='font-size: 4rem; margin-bottom: 1rem; animation: float 3s ease-in-out infinite;'>🌿</div>
-        <h1>AI Plant Doctor</h1>
-        <p style='color: #636e72; font-size: 1.2rem; font-weight: 500; max-width: 600px; margin: 0 auto;'>
-            Upload a photo of your plant to instantly diagnose diseases and get professional treatment advice.
-        </p>
-    </div>
-""", unsafe_allow_html=True)
+st.title("🌿 Leaf Disease Detector")
+st.write("Upload a leaf photo to diagnose diseases and get treatment advice.")
 
 # Initialize state
 if 'analysis_result' not in st.session_state:
@@ -228,55 +221,18 @@ if 'current_image_type' not in st.session_state:
 
 api_url = "http://localhost:8000"
 
-# Dynamic Layout Logic
-if st.session_state.analysis_result is None:
-    # --- Centered Layout (Landing) ---
-    _, center_col, _ = st.columns([1, 2, 1])
-    with center_col:
-        st.markdown("<div style='text-align: center; margin-top: 4rem;'>", unsafe_allow_html=True)
-        st.markdown("### 🌿 Begin Your Plant Diagnosis")
-        st.write("Upload a clear photo of a leaf to identify the plant and detect any diseases.")
-        
-        uploaded_file = st.file_uploader(
-            "Drop leaf image here", type=["jpg", "jpeg", "png"], key="main_uploader")
-        
-        if uploaded_file is not None:
-            st.image(uploaded_file, caption="Selected Image", use_column_width=True)
-            if st.button("Analyze Plant Health", key="center_btn"):
-                with st.spinner("🔬 AI is analyzing..."):
-                    try:
-                        img_bytes = uploaded_file.getvalue()
-                        files = {"file": (uploaded_file.name, img_bytes, uploaded_file.type)}
-                        response = requests.post(f"{api_url}/disease-detection-file", files=files)
-                        if response.status_code == 200:
-                            st.session_state.analysis_result = response.json()
-                            st.session_state.current_image = img_bytes
-                            st.session_state.current_image_type = uploaded_file.type
-                            st.experimental_rerun()
-                        else:
-                            st.error(f"API Error: {response.status_code}")
-                    except Exception as e:
-                        st.error(f"Error: {e}")
-        st.markdown("</div>", unsafe_allow_html=True)
+col1, col2 = st.columns([1, 2], gap="large")
 
-else:
-    # --- Side-by-Side Layout (Results) ---
-    col1, col2 = st.columns([1, 2], gap="large")
+with col1:
+    st.markdown("### 📤 Upload Image")
+    uploaded_file = st.file_uploader(
+        "Choose a leaf image...", type=["jpg", "jpeg", "png"], key="uploader")
     
-    with col1:
-        st.markdown("### 📸 Image Source")
-        
-        # Display existing image if available
-        if st.session_state.current_image:
-            st.image(st.session_state.current_image, caption="Analysis Target", use_column_width=True)
-
-        st.markdown("---")
-        uploaded_file = st.file_uploader(
-            "Analyze Another Leaf", type=["jpg", "jpeg", "png"], key="side_uploader")
-        
-        if uploaded_file:
-            if st.button("Analyze New Image"):
-                with st.spinner("🔬 Analyzing..."):
+    if uploaded_file is not None:
+        st.image(uploaded_file, caption="Selected Image", use_column_width=True)
+        if st.button("Analyze Plant Health", use_container_width=True):
+            with st.spinner("🔬 AI is analyzing..."):
+                try:
                     img_bytes = uploaded_file.getvalue()
                     files = {"file": (uploaded_file.name, img_bytes, uploaded_file.type)}
                     response = requests.post(f"{api_url}/disease-detection-file", files=files)
@@ -284,15 +240,19 @@ else:
                         st.session_state.analysis_result = response.json()
                         st.session_state.current_image = img_bytes
                         st.session_state.current_image_type = uploaded_file.type
-                        st.experimental_rerun()
-        
-        if st.button("⬅️ Start Over"):
-            st.session_state.analysis_result = None
-            st.session_state.current_image = None
-            st.session_state.current_image_type = None
-            st.experimental_rerun()
+                    else:
+                        st.error(f"API Error: {response.status_code}")
+                except Exception as e:
+                    st.error(f"Error: {e}")
+    
+    if st.session_state.analysis_result and st.button("⬅️ Clear Results", use_container_width=True):
+        st.session_state.analysis_result = None
+        st.session_state.current_image = None
+        st.session_state.current_image_type = None
+        st.experimental_rerun()
 
-    with col2:
+with col2:
+    if st.session_state.analysis_result:
         result = st.session_state.analysis_result
         html_content = ""
         
@@ -391,3 +351,5 @@ else:
                 """
         
         st.markdown(html_content, unsafe_allow_html=True)
+    else:
+        st.info("👈 Upload a leaf photo on the left to begin analysis.")

@@ -135,14 +135,6 @@ A JSON object containing:
 - treatment: Array of recommendations like "Apply copper-based fungicide spray"
 - analysis_timestamp: ISO timestamp
 
-#### GET /
-Root endpoint providing API information and status.
-
-**Response:**
-- message: "Leaf Disease Detection API"
-- version: "1.0.0"
-- endpoints: Available endpoint descriptions
-
 ### Core Detection Engine (Leaf Disease/main.py)
 
 #### LeafDiseaseDetector.analyze_leaf_image_base64()
