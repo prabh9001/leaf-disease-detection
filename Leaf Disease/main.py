@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from groq import Groq
+import google.generativeai as genai
 from dotenv import load_dotenv
 
 
@@ -53,21 +54,61 @@ class LeafDiseaseDetector:
 
     def __init__(self, api_key: Optional[str] = None):
         """
-        Initialize the Leaf Disease Detector with Plant.id API credentials.
+        Initialize the Leaf Disease Detector with Plant.id and Groq credentials.
         """
         load_dotenv()
         self.api_key = api_key or os.environ.get("KINDWISE_API_KEY")
-        if not self.api_key:
-            raise ValueError("KINDWISE_API_KEY not found in environment variables")
-        logger.info("Leaf Disease Detector (Kindwise) initialized")
+        self.groq_api_key = os.environ.get("GROQ_API_KEY")
+        self.gemini_api_key = os.environ.get("GEMINI_API_KEY")
+        
+        # Initialize Groq
+        self.groq_client = None
+        if self.groq_api_key:
+            self.groq_client = Groq(api_key=self.groq_api_key)
+            logger.info("Groq Vision engine initialized")
+
+        # Initialize Gemini
+        if self.gemini_api_key:
+            genai.configure(api_key=self.gemini_api_key)
+            self.gemini_model = genai.GenerativeModel('gemini-1.5-flash')
+            logger.info("Gemini Vision engine initialized")
+            
+        logger.info("Leaf Disease Detector initialized")
 
     def analyze_leaf_image_base64(self, base64_image: str,
                                   temperature: float = None,
                                   max_tokens: int = None) -> Dict:
         """
-        Analyze base64 encoded image data for leaf diseases using Kindwise API.
+        Analyze base64 encoded image data. 
+        Uses Groq Vision if available (Unlimited/Free), falls back to Kindwise.
         """
         try:
+            # Clean base64 string
+            if base64_image.startswith('data:'):
+                clean_base64 = base64_image.split(',', 1)[1]
+            else:
+                clean_base64 = base64_image
+
+            # 1. Try Gemini First (1500 free requests/day)
+            if self.gemini_api_key:
+                try:
+                    logger.info("Starting analysis with Gemini Vision")
+                    return self._analyze_with_gemini(clean_base64)
+                except Exception as e:
+                    logger.warning(f"Gemini analysis failed: {e}")
+
+            # 2. Try Groq (Unlimited/Free)
+            if self.groq_api_key:
+                try:
+                    logger.info("Starting analysis with Groq Llama-Vision")
+                    return self._analyze_with_groq(clean_base64)
+                except Exception as e:
+                    logger.warning(f"Groq analysis failed: {e}")
+
+            # 3. Fallback to Kindwise
+            if not self.api_key:
+                raise ValueError("No API keys found (GEMINI, GROQ, or KINDWISE). Please check your Secrets.")
+
             logger.info("Starting analysis with Kindwise API")
 
             # Clean base64 string
@@ -110,6 +151,59 @@ class LeafDiseaseDetector:
         except Exception as e:
             logger.error(f"Analysis failed: {str(e)}")
             raise
+
+    def _analyze_with_groq(self, base64_image: str) -> Dict:
+        """
+        Use Groq's Llama 3.2 Vision model to analyze the leaf image.
+        This provides a free, high-limit alternative to Kindwise.
+        """
+        chat_completion = self.groq_client.chat.completions.create(
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text", 
+                            "text": "Identify the plant and any diseases present in this leaf photo. Return your response ONLY as a JSON object with this exact structure: {\"plant_name\": \"...\", \"scientific_name\": \"...\", \"description\": \"...\", \"taxonomy\": {\"class\": \"...\", \"family\": \"...\", \"genus\": \"...\"}, \"disease_detected\": true/false, \"disease_name\": \"...\", \"disease_scientific_name\": \"...\", \"disease_type\": \"...\", \"severity\": \"...\", \"confidence\": 95.0, \"symptoms\": [\"...\"], \"possible_causes\": [\"...\"], \"treatment\": [\"...\"], \"similar_images\": []}"
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{base64_image}",
+                            },
+                        },
+                    ],
+                }
+            ],
+            model="llama-3.2-11b-vision-preview",
+            response_format={"type": "json_object"}
+        )
+        
+        return json.loads(chat_completion.choices[0].message.content)
+
+    def _analyze_with_gemini(self, base64_image: str) -> Dict:
+        """
+        Use Google's Gemini-1.5-Flash model to analyze the leaf image.
+        """
+        import PIL.Image
+        import io
+        
+        # Convert base64 to PIL Image
+        img_data = base64.b64decode(base64_image)
+        img = PIL.Image.open(io.BytesIO(img_data))
+        
+        prompt = "Identify the plant and any diseases present in this leaf photo. Return your response ONLY as a JSON object with this exact structure: {\"plant_name\": \"...\", \"scientific_name\": \"...\", \"description\": \"...\", \"taxonomy\": {\"class\": \"...\", \"family\": \"...\", \"genus\": \"...\"}, \"disease_detected\": true/false, \"disease_name\": \"...\", \"disease_scientific_name\": \"...\", \"disease_type\": \"...\", \"severity\": \"...\", \"confidence\": 95.0, \"symptoms\": [\"...\"], \"possible_causes\": [\"...\"], \"treatment\": [\"...\"], \"similar_images\": []}"
+        
+        response = self.gemini_model.generate_content([prompt, img])
+        
+        # Clean response text (remove markdown backticks if present)
+        text = response.text
+        if "```json" in text:
+            text = text.split("```json")[1].split("```")[0]
+        elif "```" in text:
+            text = text.split("```")[1].split("```")[0]
+            
+        return json.loads(text.strip())
 
     def _convert_plant_id_response(self, data: Dict) -> DiseaseAnalysisResult:
         """
