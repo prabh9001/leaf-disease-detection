@@ -1,13 +1,9 @@
 [theme]
 base = "light"
-primaryColor = "#1976d2"
+primaryColor = "#166534"
 backgroundColor = "#ffffff"
-secondaryBackgroundColor = "#f0f2f6"
-textColor = "#262730"
-
-[server]
-runOnSave = true
-port = 8501
+secondaryBackgroundColor = "#f7f9f7"
+textColor = "#2f3542"
 
 [browser]
 gatherUsageStats = false
