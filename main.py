@@ -232,6 +232,11 @@ if 'current_image_type' not in st.session_state:
     st.session_state.current_image_type = None
 
 # Note: We now process directly using LeafDiseaseDetector for Streamlit Cloud compatibility
+def safe_rerun():
+    try:
+        st.rerun()
+    except AttributeError:
+        st.experimental_rerun()
 
 # Main Application Logic
 if st.session_state.analysis_result:
@@ -248,7 +253,7 @@ if st.session_state.analysis_result:
             st.session_state.analysis_result = None
             st.session_state.current_image = None
             st.session_state.current_image_type = None
-            st.experimental_rerun()
+            safe_rerun()
 
     with col_right:
         result = st.session_state.analysis_result
@@ -365,7 +370,7 @@ else:
                             st.session_state.analysis_result = result
                             st.session_state.current_image = img_bytes
                             st.session_state.current_image_type = uploaded_file.type
-                            st.experimental_rerun()
+                            safe_rerun()
                         else:
                             st.error("AI Analysis failed. Please check your API key in Streamlit Secrets.")
                     except Exception as e:
