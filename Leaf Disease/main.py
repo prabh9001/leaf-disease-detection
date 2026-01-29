@@ -164,7 +164,7 @@ class LeafDiseaseDetector:
                     "content": [
                         {
                             "type": "text", 
-                            "text": "Identify the plant and any diseases present in this leaf photo. Return your response ONLY as a JSON object with this exact structure: {\"plant_name\": \"...\", \"scientific_name\": \"...\", \"description\": \"...\", \"taxonomy\": {\"class\": \"...\", \"family\": \"...\", \"genus\": \"...\"}, \"disease_detected\": true/false, \"disease_name\": \"...\", \"disease_scientific_name\": \"...\", \"disease_type\": \"...\", \"severity\": \"...\", \"confidence\": 95.0, \"symptoms\": [\"...\"], \"possible_causes\": [\"...\"], \"treatment\": [\"...\"], \"similar_images\": []}"
+                            "text": "Identify the plant and any diseases present in this leaf photo. Return your response ONLY as a JSON object with this exact structure: {\"plant_name\": \"...\", \"scientific_name\": \"...\", \"description\": \"...\", \"taxonomy\": {\"class\": \"...\", \"family\": \"...\", \"genus\": \"...\"}, \"disease_detected\": true/false, \"disease_name\": \"...\", \"disease_scientific_name\": \"...\", \"disease_type\": \"...\", \"severity\": \"...\", \"confidence\": 95.0, \"symptoms\": [\"...\"], \"possible_causes\": [\"...\"], \"treatment\": [\"...\"], \"care_calendar\": {\"watering\": \"...\", \"fertilizing\": \"...\", \"pruning\": \"...\", \"sunlight\": \"...\"}, \"similar_images\": []}"
                         },
                         {
                             "type": "image_url",
@@ -192,7 +192,7 @@ class LeafDiseaseDetector:
         img_data = base64.b64decode(base64_image)
         img = PIL.Image.open(io.BytesIO(img_data))
         
-        prompt = "Identify the plant and any diseases present in this leaf photo. Return your response ONLY as a JSON object with this exact structure: {\"plant_name\": \"...\", \"scientific_name\": \"...\", \"description\": \"...\", \"taxonomy\": {\"class\": \"...\", \"family\": \"...\", \"genus\": \"...\"}, \"disease_detected\": true/false, \"disease_name\": \"...\", \"disease_scientific_name\": \"...\", \"disease_type\": \"...\", \"severity\": \"...\", \"confidence\": 95.0, \"symptoms\": [\"...\"], \"possible_causes\": [\"...\"], \"treatment\": [\"...\"], \"similar_images\": []}"
+        prompt = "Identify the plant and any diseases present in this leaf photo. Return your response ONLY as a JSON object with this exact structure: {\"plant_name\": \"...\", \"scientific_name\": \"...\", \"description\": \"...\", \"taxonomy\": {\"class\": \"...\", \"family\": \"...\", \"genus\": \"...\"}, \"disease_detected\": true/false, \"disease_name\": \"...\", \"disease_scientific_name\": \"...\", \"disease_type\": \"...\", \"severity\": \"...\", \"confidence\": 95.0, \"symptoms\": [\"...\"], \"possible_causes\": [\"...\"], \"treatment\": [\"...\"], \"care_calendar\": {\"watering\": \"...\", \"fertilizing\": \"...\", \"pruning\": \"...\", \"sunlight\": \"...\"}, \"similar_images\": []}"
         
         response = self.gemini_model.generate_content([prompt, img])
         

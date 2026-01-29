@@ -1,27 +1,73 @@
 import streamlit as st
 import requests
 import os
-from utils import convert_image_to_base64_and_test
+from utils import convert_image_to_base64_and_test, create_pdf_report
+import datetime
 
-# Set Streamlit theme to light and wide mode
+# Set Streamlit theme to wide mode
 st.set_page_config(
     page_title="Leaf Disease Detection",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
-
-# Modern Botanical CSS
+# Premium Global Styles
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap');
     
+    :root {
+        --primary: #166534;
+        --secondary: #4ade80;
+        --accent: #f59e0b;
+        --bg-light: #f7f9f7;
+        --card-bg: #ffffff;
+    }
+
     .stApp {
-        background-color: #f7f9f7;
-        background-image: radial-gradient(#d8e2dc 1px, transparent 1px);
-        background-size: 24px 24px;
+        background-color: var(--bg-light);
         font-family: 'Outfit', sans-serif;
-        color: #2f3542;
+    }
+
+    /* Weather Risk Card */
+    .weather-card {
+        background: linear-gradient(135deg, #1e40af, #3b82f6);
+        color: white;
+        padding: 20px;
+        border-radius: 15px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    /* Care Calendar Card */
+    .calendar-card {
+        background: #fdfdfd;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 15px;
+        margin-top: 15px;
+    }
+    
+    .calendar-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px dashed #eee;
+    }
+
+    /* Dark Mode Support */
+    [data-theme="dark"] .stApp {
+        background-color: #0f172a;
+        color: #f8fafc;
+    }
+    [data-theme="dark"] .result-card {
+        background: #1e293b;
+        border-color: #334155;
+    }
+    [data-theme="dark"] .list-item {
+        background: #334155;
+        color: #f1f5f9;
+        border-left-color: #475569;
     }
 
     /* Remove excess vertical space at the top */
@@ -98,6 +144,8 @@ st.markdown("""
         margin-bottom: 1.2rem;
         border-bottom: 2px solid #dcfce7;
         padding-bottom: 0.5rem;
+        display: inline-block;
+    }
         display: inline-block;
     }
     
@@ -220,160 +268,217 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# --- Sidebar Configuration (Feature 4 & 7) ---
+with st.sidebar:
+    st.image("https://cdn-icons-png.flaticon.com/512/3241/3241470.png", width=100)
+    st.title("Settings")
+    
+    # Feature 7: Theme & Premium UI
+    ui_mode = st.selectbox("🎨 UI Theme", ["Standard Botanical", "Premium Dark"], index=0)
+    if ui_mode == "Premium Dark":
+         st.markdown("<style>.stApp { background-color: #0f172a !important; color: #f8fafc !important; } .result-card { background: #1e293b !important; color: #f8fafc !important; }</style>", unsafe_allow_html=True)
 
-st.markdown("<div style='text-align: center;'><h1>🌿 Leaf Disease Detector</h1><p>Upload a leaf photo to diagnose diseases and get treatment advice.</p></div>", unsafe_allow_html=True)
+    st.markdown("---")
+    
+    # Feature 4: Real-Time Weather Risk Assessment (Using Open-Meteo - 100% Free)
+    st.subheader("🌦️ Environmental Risk")
+    location = st.text_input("Enter Location (City Name)", "Delhi")
+    
+    # Real-time weather integration helper (Using Open-Meteo Open Data)
+    def get_botanical_risk(city):
+        try:
+            # 1. Geocoding: Get Lat/Lon for the city name
+            geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={city}&count=1&language=en&format=json"
+            geo_resp = requests.get(geo_url, timeout=5).json()
+            
+            if not geo_resp.get('results'):
+                return None, f"❌ City not found: {city}"
+            
+            lat = geo_resp['results'][0]['latitude']
+            lon = geo_resp['results'][0]['longitude']
+            full_name = geo_resp['results'][0]['name']
+            
+            # 2. Weather: Get Temperature and Humidity
+            weather_url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,relative_humidity_2m"
+            w_resp = requests.get(weather_url, timeout=5).json()
+            
+            current = w_resp.get('current', {})
+            humidity = current.get('relative_humidity_2m', 0)
+            temp = current.get('temperature_2m', 0)
+            
+            # Risk Calculation Logic
+            risk_score = humidity 
+            if temp > 30: risk_score += 10 # Heat stress
+            if humidity > 80: risk_score = min(95, risk_score + 15) # Fungal spike
+            
+            risk_level = "Low"
+            if risk_score > 40: risk_level = "Medium"
+            if risk_score > 70: risk_level = "High"
+            
+            msg = "Conditions are stable."
+            if humidity > 75: msg = "⚠️ High humidity detected. Fungal diseases (Rust, Mildew) move faster now."
+            elif temp > 35: msg = "🔥 Heat stress alert. Watch for wilting and leaf burn."
+            elif humidity < 30: msg = "🏜️ Very dry air. Check for spider mites and dehydration."
+            
+            return {
+                "score": int(risk_score),
+                "level": risk_level,
+                "msg": msg,
+                "temp": temp,
+                "humidity": humidity,
+                "city": full_name
+            }, None
+        except Exception as e:
+            return None, f"Connection error: {e}"
+
+    if location:
+        with st.spinner("Fetching local climate data..."):
+            risk_data, error = get_botanical_risk(location)
+            
+        if error:
+            st.error(error)
+        elif risk_data:
+            st.session_state.weather_risk = risk_data
+            st.markdown(f"""
+            <div class='weather-card' style='background: linear-gradient(135deg, {"#991b1b" if risk_data["level"] == "High" else "#1e40af"}, #3b82f6);'>
+                <div style='display: flex; justify-content: space-between; align-items: center;'>
+                    <span style='font-size: 0.9rem; opacity: 0.8;'>Risk Level: <b>{risk_data["level"]}</b></span>
+                    <span style='font-size: 0.9rem;'>{risk_data["temp"]}°C | {risk_data["humidity"]}% RH</span>
+                </div>
+                <div style='font-size: 2.2rem; font-weight: 700; margin: 10px 0;'>{risk_data["score"]}%</div>
+                <div style='font-size: 0.85rem; line-height: 1.4;'>{risk_data["msg"]}</div>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    st.info("💡 Tip: Upload multiple leaves for a full plant health audit.")
+
+# --- App Content ---
+st.markdown("<div style='text-align: center;'><h1>🌿 Leaf Disease Detector</h1><p>Enterprise AI for Agriculture & Gardening</p></div>", unsafe_allow_html=True)
 
 # Initialize state
-if 'analysis_result' not in st.session_state:
-    st.session_state.analysis_result = None
-if 'current_image' not in st.session_state:
-    st.session_state.current_image = None
-if 'current_image_type' not in st.session_state:
-    st.session_state.current_image_type = None
+if 'batch_results' not in st.session_state:
+    st.session_state.batch_results = []
 
-# Note: We now process directly using LeafDiseaseDetector for Streamlit Cloud compatibility
 def safe_rerun():
-    try:
-        st.rerun()
-    except AttributeError:
-        st.experimental_rerun()
+    st.rerun()
 
-# Main Application Logic
-if st.session_state.analysis_result:
-    # --- Split Layout (Results Active) ---
-    col_left, col_right = st.columns([1, 1.4])
-    
-    with col_left:
-        st.markdown("<h3 style='color: #166534; margin-bottom: 1.5rem; text-align: left;'>📸 Analyzed Image</h3>", unsafe_allow_html=True)
-        if st.session_state.current_image:
-            st.image(st.session_state.current_image, use_column_width=True)
-        
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("⬅️ New Analysis"):
-            st.session_state.analysis_result = None
-            st.session_state.current_image = None
-            st.session_state.current_image_type = None
-            safe_rerun()
+# --- Feature 5: Batch Processing ---
+st.markdown("<h2 style='text-align: center; color: #166534; margin-bottom: 2rem;'>📤 Upload Leaves</h2>", unsafe_allow_html=True)
+uploaded_files = st.file_uploader(
+    "Upload one or more leaf images...", 
+    type=["jpg", "jpeg", "png"], 
+    accept_multiple_files=True,
+    key="batch_uploader"
+)
 
-    with col_right:
-        result = st.session_state.analysis_result
-        html_content = ""
-        
-        if result.get("disease_type") == "invalid_image":
-            html_content = """
-            <div class='result-card'>
-                <div class='disease-title' style='color: #ff7675;'>⚠️ Invalid Image</div>
-                <div style='color: #636e72; font-size: 1.1em;'>Please upload a clear image of a plant leaf.</div>
-            </div>
-            """
-        else:
-            # --- 1. Plant Profile Card ---
-            plant_name = result.get('plant_name', 'Unknown Plant')
-            sci_name = result.get('scientific_name', '')
-            description = result.get('description', '')
-            taxonomy = result.get('taxonomy', {})
-            similar_imgs = result.get('similar_images', [])
-            
-            html_content += f"""
-            <div class='result-card'>
-                <div class='section-title' style='margin-top:0;'>🌱 Plant Identity</div>
-                <div class='disease-title'>{plant_name}</div>
-                <div style='font-style: italic; color: #555; margin-bottom: 1rem; font-size: 1.1rem;'>{sci_name}</div>
-            """
-            
-            if taxonomy:
-                html_content += "<div style='margin-bottom: 1.5rem;'>"
-                for rank, name in taxonomy.items():
-                    if name:
-                        html_content += f"<span class='info-badge' style='background: #e0f2f1; color: #00695c;'>{rank.title()}: {name}</span>"
-                html_content += "</div>"
-            
-            if description:
-                html_content += f"<div style='line-height: 1.6; color: #444; margin-bottom: 1.5rem;'>{description[:500]}{'...' if len(description)>500 else ''}</div>"
-
-            if similar_imgs:
-                html_content += "<div class='section-title'>📸 Reference Images</div>"
-                html_content += "<div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 1rem;'>"
-                for i, img_url in enumerate(similar_imgs):
-                    lb_id = f"lightbox-{i}"
-                    html_content += f"""<div class='img-container'><a href='#{lb_id}'><img src='{img_url}' style='width: 100%; height: 200px; object-fit: cover; display: block; transition: transform 0.3s;' onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'"/></a><a href='{img_url}' download target='_blank' style='position: absolute; bottom: 8px; right: 8px; background: rgba(255,255,255,0.95); padding: 5px 10px; border-radius: 15px; text-decoration: none; color: #166534; font-weight: 600; font-size: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 4px; transition: all 0.2s;'><span>⬇️ Save</span></a></div><div id='{lb_id}' class='lightbox'><a href='#' class='close-lightbox'>&times;</a><img src='{img_url}' /><div style='margin-top: 20px;'><a href='{img_url}' download target='_blank' style='background: #166534; color: white; padding: 12px 30px; border-radius: 30px; text-decoration: none; font-weight: 600;'>Download Full Resolution</a></div></div>"""
-                html_content += "</div>"
-            
-            html_content += "</div>"
-
-            # --- 2. Health Assessment Card ---
-            if result.get("disease_detected"):
-                html_content += "<div class='result-card'>"
-                html_content += f"<div class='disease-title'>{result.get('disease_name', 'Unknown Issue')}</div>"
-                
-                sci_disease = result.get('disease_scientific_name')
-                if sci_disease and sci_disease != result.get('disease_name'):
-                        html_content += f"<div style='font-style: italic; color: #555; margin-bottom: 1rem; font-size: 1.1rem;'>{sci_disease}</div>"
-                
-                badges_html = ""
-                dtype = result.get('disease_type')
-                if dtype and dtype.lower() not in ['unknown', 'none', 'n/a']:
-                    badges_html += f"<span class='info-badge'>{dtype.title()}</span>"
-                
-                severity = result.get('severity')
-                if severity and severity.lower() not in ['unknown', 'none', 'n/a']:
-                    badges_html += f"<span class='info-badge severity-badge'>Severity: {severity.title()}</span>"
-                
-                confidence = result.get('confidence')
-                if confidence:
-                    badges_html += f"<span class='info-badge confidence-badge'>{confidence}% Confidence</span>"
-                
-                html_content += f"<div>{badges_html}</div>"
-                
-                if result.get("symptoms"):
-                    html_content += "<div class='section-title'>🩺 Diagnostics</div>"
-                    for symptom in result.get("symptoms", []):
-                        html_content += f"<div class='list-item'>{symptom}</div>"
-
-                if result.get("treatment"):
-                    html_content += "<div class='section-title'>💊 Recommended Treatment</div>"
-                    for treat in result.get("treatment", []):
-                        html_content += f"<div class='list-item'>{treat}</div>"
-                
-                html_content += f"<div class='timestamp' style='color: #b2bec3; font-size: 0.85rem; margin-top: 2.5rem; text-align: right; font-weight: 500;'>Analysis Time: {result.get('analysis_timestamp', 'Just now')}</div>"
-                html_content += "</div>"
-            else:
-                html_content += f"""
-                <div class='result-card'>
-                    <div class='disease-title' style='color: #00b894;'>✅ Healthy Plant</div>
-                    <div style='color: #636e72; font-size: 1.2em; margin-bottom: 1em;'>Great news! No diseases were detected. Your plant looks vibrant and healthy.</div>
-                    <span class='info-badge confidence-badge'>{result.get('confidence', '99')}% Confidence</span>
-                </div>
-                """
-        
-        st.markdown(html_content, unsafe_allow_html=True)
-
-else:
-    # --- Centered Layout (Initial State) ---
-    _, mid_col, _ = st.columns([1, 2, 1])
-    
-    with mid_col:
-        st.markdown("<h2 style='text-align: center; color: #166534; margin-bottom: 2rem;'>📤 Upload Image</h2>", unsafe_allow_html=True)
-        uploaded_file = st.file_uploader(
-            "Choose a leaf image...", type=["jpg", "jpeg", "png"], key="uploader")
-        
-        if uploaded_file is not None:
-            st.image(uploaded_file, caption="Selected Image", use_column_width=True)
-            if st.button("Analyze Plant Health"):
-                with st.spinner("🔬 AI is analyzing..."):
+if uploaded_files:
+    if st.button("🚀 Analyze All Leaves"):
+        results = []
+        progress_bar = st.progress(0)
+        for i, file in enumerate(uploaded_files):
+            with st.spinner(f"Analyzing leaf {i+1}/{len(uploaded_files)}..."):
+                img_bytes = file.getvalue()
+                res = convert_image_to_base64_and_test(img_bytes)
+                if res:
+                    # Pre-generate PDF for instant download and store in results
+                    pdf_data = None
                     try:
-                        img_bytes = uploaded_file.getvalue()
-                        # Direct call to logic instead of API request
-                        result = convert_image_to_base64_and_test(img_bytes)
+                        pdf_data = create_pdf_report(res, img_bytes)
+                    except Exception as pdf_err:
+                        # Log but don't stall the whole loop
+                        pass
                         
-                        if result:
-                            st.session_state.analysis_result = result
-                            st.session_state.current_image = img_bytes
-                            st.session_state.current_image_type = uploaded_file.type
-                            safe_rerun()
-                        else:
-                            st.error("AI Analysis failed. Please check your API key in Streamlit Secrets.")
+                    results.append({
+                        "name": file.name, 
+                        "data": res, 
+                        "bytes": img_bytes,
+                        "pdf": pdf_data
+                    })
+                progress_bar.progress((i + 1) / len(uploaded_files))
+        st.session_state.batch_results = results
+        st.success(f"Successfully analyzed {len(results)} images!")
+
+# --- Display Results ---
+if st.session_state.batch_results:
+    st.markdown("---")
+    st.subheader(f"📊 Analysis Batch - {len(st.session_state.batch_results)} Items")
+    
+    for idx, item in enumerate(st.session_state.batch_results):
+        with st.expander(f"🍃 Result: {item['name']} - {item['data'].get('plant_name', 'Plant')}", expanded=(idx==0)):
+            col_img, col_info = st.columns([1, 2])
+            
+            with col_img:
+                st.image(item['bytes'], use_column_width=True)
+                
+                # Feature 3: PDF Export (with on-demand regeneration)
+                pdf_bytes = item.get('pdf')
+                if not pdf_bytes:
+                    try:
+                        pdf_bytes = create_pdf_report(item['data'], item['bytes'])
                     except Exception as e:
-                        st.error(f"Error: {e}")
-        else:
-            st.info("👋 Upload a leaf photo above to begin analysis.")
+                        pdf_bytes = None
+                
+                if pdf_bytes:
+                    # Feature 7 Extension: In-App Preview (Instant & IDM-safe)
+                    if st.button(f"👁️ Preview Report", key=f"pv_{idx}"):
+                        import base64
+                        base64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
+                        pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="600" type="application/pdf"></iframe>'
+                        st.markdown(pdf_display, unsafe_allow_html=True)
+                else:
+                    st.warning("⚠️ PDF generation unavailable for this result.")
+            
+            with col_info:
+                res = item['data']
+                
+                # Health Badge
+                status_color = "#00b894" if not res.get('disease_detected') else "#d63031"
+                st.markdown(f"""
+                    <div style='background: {status_color}11; border: 1px solid {status_color}; padding: 10px; border-radius: 10px; margin-bottom: 15px;'>
+                        <strong style='color: {status_color}'>Status: {'⚠️ Disease Detected' if res.get('disease_detected') else '✅ Healthy'}</strong>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                st.write(f"**Plant:** {res.get('plant_name')} (*{res.get('scientific_name')}*)")
+                if res.get('disease_detected'):
+                    st.write(f"**Issue:** {res.get('disease_name')}")
+                    st.write(f"**Severity:** {res.get('severity', 'Moderate').title()}")
+                
+                # Feature 6: Personalized Care Calendar
+                calendar = res.get('care_calendar')
+                if calendar:
+                    st.markdown("<div class='section-title'>� Personalized Care Calendar</div>", unsafe_allow_html=True)
+                    cal_html = "<div class='calendar-card'>"
+                    for activity, notes in calendar.items():
+                        if notes:
+                            cal_html += f"<div class='calendar-item'><strong>{activity.title()}:</strong> <span>{notes}</span></div>"
+                    cal_html += "</div>"
+                    st.markdown(cal_html, unsafe_allow_html=True)
+
+                # Diagnostics & Treatment (Tabs)
+                tab1, tab2, tab3 = st.tabs(["🩺 Diagnostics", "💊 Treatment", "🌍 Env Insights"])
+                with tab1:
+                    for s in res.get('symptoms', []):
+                        st.markdown(f"<div class='list-item'>{s}</div>", unsafe_allow_html=True)
+                with tab2:
+                    for t in res.get('treatment', []):
+                        st.markdown(f"<div class='list-item'>{t}</div>", unsafe_allow_html=True)
+                with tab3:
+                    if 'weather_risk' in st.session_state:
+                        w = st.session_state.weather_risk
+                        st.markdown(f"""
+                        <div class='list-item' style='border-left-color: #3b82f6;'>
+                            <b>Local Context ({location}):</b><br>
+                            Current Humidity: {w['humidity']}% | Temp: {w['temp']}°C<br><br>
+                            <i>Advice:</i> {w['msg']}
+                        </div>
+                        """, unsafe_allow_html=True)
+                    else:
+                        st.info("Enter a location in the sidebar to see how your local weather affects this plant.")
+
+    if st.button("🗑️ Clear All Results"):
+        st.session_state.batch_results = []
+        st.rerun()
+else:
+    st.info("👋 Upload leaf images above and click 'Analyze All' to start your batch audit.")
