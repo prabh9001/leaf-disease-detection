@@ -8,16 +8,13 @@ This script demonstrates how to send base64 image data directly to the detector.
 import json
 import sys,os
 import base64
+import datetime
 from pathlib import Path
 
 # Add the Leaf Disease directory to Python path
 sys.path.insert(0, str(Path(__file__).parent / "Leaf Disease"))
 
-try:
-    from main import LeafDiseaseDetector
-except ImportError as e:
-    print(f'{{"error": "Could not import LeafDiseaseDetector: {str(e)}"}}')
-    sys.exit(1)
+# Detector is imported inside functions to avoid naming collisions at module level
 
 
 def test_with_base64_data(base64_image_string: str):
@@ -28,6 +25,7 @@ def test_with_base64_data(base64_image_string: str):
         base64_image_string (str): Base64 encoded image data
     """
     try:
+        from leaf_detector import LeafDiseaseDetector
         detector = LeafDiseaseDetector()
         result = detector.analyze_leaf_image_base64(base64_image_string)
         print(json.dumps(result, indent=2))
