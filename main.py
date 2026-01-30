@@ -146,10 +146,9 @@ st.markdown("""
         padding-bottom: 0.5rem;
         display: inline-block;
     }
-        display: inline-block;
-    }
     
     /* Badges */
+
     .info-badge {
         display: inline-flex;
         align-items: center;

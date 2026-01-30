@@ -224,7 +224,10 @@ def create_pdf_report(result: dict, image_bytes: bytes = None):
     timestamp = result.get('analysis_timestamp') or datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     pdf.cell(effective_width, 10, clean_text(f"Report Generated: {timestamp}"), 0, 1, 'R')
 
-    return bytes(pdf.output(dest='S'))
+    output = pdf.output(dest='S')
+    if isinstance(output, str):
+        return output.encode('latin-1')
+    return bytes(output)
 
 def main():
     """Test with base64 conversion"""

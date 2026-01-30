@@ -9,3 +9,6 @@ streamlit>=1.12.0
 groq
 Pillow
 google-generativeai
+fpdf2
+fastapi
+uvicorn
