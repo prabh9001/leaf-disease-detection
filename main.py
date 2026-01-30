@@ -388,7 +388,7 @@ if uploaded_files:
                     # Pre-generate PDF for instant download and store in results
                     pdf_data = None
                     try:
-                        pdf_data = create_pdf_report(res, img_bytes)
+                        pdf_data = create_pdf_report(res, img_bytes, location=location)
                     except Exception as pdf_err:
                         # Log but don't stall the whole loop
                         pass
@@ -415,32 +415,16 @@ if st.session_state.batch_results:
             with col_img:
                 st.image(item['bytes'], use_column_width=True)
                 
-                # Feature 3: PDF Export (with on-demand regeneration)
-                pdf_bytes = item.get('pdf')
-                if not pdf_bytes:
-                    try:
-                        pdf_bytes = create_pdf_report(item['data'], item['bytes'])
-                    except Exception as e:
-                        pdf_bytes = None
-                
-                if pdf_bytes:
+                # Feature 3: PDF Export
+                if item.get('pdf'):
                     # Provide Download Option (Most reliable on Deployed apps)
                     st.download_button(
                         label="📥 Download PDF Report",
-                        data=pdf_bytes,
+                        data=item['pdf'],
                         file_name=f"Plant_Report_{idx}_{item['name']}.pdf",
                         mime="application/pdf",
                         key=f"dl_{idx}"
                     )
-                    
-                    # Preview Option (May be blocked by some browsers on deployed domains)
-                    if st.button(f"👁️ Preview In-App", key=f"pv_{idx}"):
-                        import base64
-                        base64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
-                        # Using embed instead of iframe for better compatibility
-                        pdf_display = f'<embed src="data:application/pdf;base64,{base64_pdf}" width="100%" height="800" type="application/pdf">'
-                        st.markdown(pdf_display, unsafe_allow_html=True)
-                        st.info("💡 Note: If preview is blocked, use the 'Download' button above.")
                 else:
                     st.warning("⚠️ PDF generation unavailable for this result.")
             

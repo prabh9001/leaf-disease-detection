@@ -55,7 +55,7 @@ def convert_image_to_base64_and_test(image_bytes: bytes):
         return None
 
 
-def create_pdf_report(result: dict, image_bytes: bytes = None):
+def create_pdf_report(result: dict, image_bytes: bytes = None, location: str = None):
     """
     Generate a PDF report for the disease analysis.
     """
@@ -144,6 +144,13 @@ def create_pdf_report(result: dict, image_bytes: bytes = None):
     pdf.set_text_color(0, 0, 0)
     pdf.set_font(base_font, 'I', 11)
     pdf.cell(effective_width, 8, clean_text(f"Scientific Name: {result.get('scientific_name', 'N/A')}"), 0, 1)
+    
+    if location:
+        pdf.set_font(base_font, 'B', 11)
+        pdf.set_text_color(22, 101, 52)
+        pdf.cell(effective_width, 8, clean_text(f"Location context: {location}"), 0, 1)
+        pdf.set_text_color(0, 0, 0)
+        
     pdf.ln(5)
 
     # 3. Diagnostic Results
