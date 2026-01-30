@@ -205,18 +205,23 @@ st.markdown("""
     /* Primary Button */
     .stButton > button {
         background-color: #166534 !important;
-        color: #ffffff !important;
+        color: white !important;
         border-radius: 12px !important;
         border: none !important;
         padding: 0.8rem 2rem !important;
-        font-weight: 500 !important;
+        font-weight: 600 !important;
         font-size: 1.1rem !important;
         width: 100% !important;
         box-shadow: 0 4px 12px rgba(22, 101, 52, 0.2) !important;
         transition: all 0.2s ease !important;
     }
+    /* Ensure button text remains white even with Streamlit overrides */
+    .stButton > button p, .stButton > button span, .stButton > button div {
+        color: white !important;
+    }
     .stButton > button:hover {
         background-color: #14532d !important;
+        color: white !important;
         transform: translateY(-2px);
         box-shadow: 0 8px 16px rgba(22, 101, 52, 0.3) !important;
     }
@@ -419,12 +424,23 @@ if st.session_state.batch_results:
                         pdf_bytes = None
                 
                 if pdf_bytes:
-                    # Feature 7 Extension: In-App Preview (Instant & IDM-safe)
-                    if st.button(f"👁️ Preview Report", key=f"pv_{idx}"):
+                    # Provide Download Option (Most reliable on Deployed apps)
+                    st.download_button(
+                        label="📥 Download PDF Report",
+                        data=pdf_bytes,
+                        file_name=f"Plant_Report_{idx}_{item['name']}.pdf",
+                        mime="application/pdf",
+                        key=f"dl_{idx}"
+                    )
+                    
+                    # Preview Option (May be blocked by some browsers on deployed domains)
+                    if st.button(f"👁️ Preview In-App", key=f"pv_{idx}"):
                         import base64
                         base64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
-                        pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="600" type="application/pdf"></iframe>'
+                        # Using embed instead of iframe for better compatibility
+                        pdf_display = f'<embed src="data:application/pdf;base64,{base64_pdf}" width="100%" height="800" type="application/pdf">'
                         st.markdown(pdf_display, unsafe_allow_html=True)
+                        st.info("💡 Note: If preview is blocked, use the 'Download' button above.")
                 else:
                     st.warning("⚠️ PDF generation unavailable for this result.")
             
