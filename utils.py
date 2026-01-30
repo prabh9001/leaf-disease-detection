@@ -148,10 +148,10 @@ def create_pdf_report(result: dict, image_bytes: bytes = None, location: str = N
     if location:
         pdf.set_font(base_font, 'B', 11)
         pdf.set_text_color(22, 101, 52)
-        pdf.cell(effective_width, 8, clean_text(f"Location context: {location}"), 0, 1)
+        pdf.cell(effective_width, 8, clean_text(f"Selected Location: {location}"), 0, 1)
         pdf.set_text_color(0, 0, 0)
-        
-    pdf.ln(5)
+        pdf.ln(2)
+
 
     # 3. Diagnostic Results
     pdf.set_draw_color(220, 220, 220)

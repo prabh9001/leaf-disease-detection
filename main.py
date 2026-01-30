@@ -388,8 +388,12 @@ if uploaded_files:
                     # Pre-generate PDF for instant download and store in results
                     pdf_data = None
                     try:
-                        pdf_data = create_pdf_report(res, img_bytes, location=location)
+                        # Use resolved city name if weather data exists, otherwise use raw input
+                        pdf_location = st.session_state.get('weather_risk', {}).get('city', location)
+                        pdf_data = create_pdf_report(res, img_bytes, location=pdf_location)
                     except Exception as pdf_err:
+
+
                         # Log but don't stall the whole loop
                         pass
                         
