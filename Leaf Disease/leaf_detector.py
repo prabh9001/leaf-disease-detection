@@ -6,7 +6,8 @@ from typing import Dict, Optional, List
 from dataclasses import dataclass
 from datetime import datetime
 
-from groq import Groq
+
+
 import google.generativeai as genai
 from dotenv import load_dotenv
 
@@ -58,14 +59,9 @@ class LeafDiseaseDetector:
         """
         load_dotenv()
         self.api_key = api_key or os.environ.get("KINDWISE_API_KEY")
-        self.groq_api_key = os.environ.get("GROQ_API_KEY")
         self.gemini_api_key = os.environ.get("GEMINI_API_KEY")
         
-        # Initialize Groq
-        self.groq_client = None
-        if self.groq_api_key:
-            self.groq_client = Groq(api_key=self.groq_api_key)
-            logger.info("Groq Vision engine initialized")
+
 
         # Initialize Gemini
         if self.gemini_api_key:
@@ -97,17 +93,9 @@ class LeafDiseaseDetector:
                 except Exception as e:
                     logger.warning(f"Gemini analysis failed: {e}")
 
-            # 2. Try Groq (Unlimited/Free)
-            if self.groq_api_key:
-                try:
-                    logger.info("Starting analysis with Groq Llama-Vision")
-                    return self._analyze_with_groq(clean_base64)
-                except Exception as e:
-                    logger.warning(f"Groq analysis failed: {e}")
-
-            # 3. Fallback to Kindwise
+            # 2. Fallback to Kindwise
             if not self.api_key:
-                raise ValueError("No API keys found (GEMINI, GROQ, or KINDWISE). Please check your Secrets.")
+                raise ValueError("No API keys found (GEMINI or KINDWISE). Please check your Secrets.")
 
             logger.info("Starting analysis with Kindwise API")
 
@@ -152,34 +140,6 @@ class LeafDiseaseDetector:
             logger.error(f"Analysis failed: {str(e)}")
             raise
 
-    def _analyze_with_groq(self, base64_image: str) -> Dict:
-        """
-        Use Groq's Llama 3.2 Vision model to analyze the leaf image.
-        This provides a free, high-limit alternative to Kindwise.
-        """
-        chat_completion = self.groq_client.chat.completions.create(
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text", 
-                            "text": "Identify the plant and any diseases present in this leaf photo. Return your response ONLY as a JSON object with this exact structure: {\"plant_name\": \"...\", \"scientific_name\": \"...\", \"description\": \"...\", \"taxonomy\": {\"class\": \"...\", \"family\": \"...\", \"genus\": \"...\"}, \"disease_detected\": true/false, \"disease_name\": \"...\", \"disease_scientific_name\": \"...\", \"disease_type\": \"...\", \"severity\": \"...\", \"confidence\": 95.0, \"symptoms\": [\"...\"], \"possible_causes\": [\"...\"], \"treatment\": [\"...\"], \"care_calendar\": {\"watering\": \"...\", \"fertilizing\": \"...\", \"pruning\": \"...\", \"sunlight\": \"...\"}, \"similar_images\": []}"
-                        },
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/jpeg;base64,{base64_image}",
-                            },
-                        },
-                    ],
-                }
-            ],
-            model="llama-3.2-11b-vision-preview",
-            response_format={"type": "json_object"}
-        )
-        
-        return json.loads(chat_completion.choices[0].message.content)
 
     def _analyze_with_gemini(self, base64_image: str) -> Dict:
         """
