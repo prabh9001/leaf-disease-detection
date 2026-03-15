@@ -1,10 +1,3 @@
-"""
-Base64 Image Test for Leaf Disease Detection
-===========================================
-
-This script demonstrates how to send base64 image data directly to the detector.
-"""
-
 import json
 import sys,os
 import base64
